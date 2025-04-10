@@ -1,31 +1,33 @@
 import cv2
-import time
 import os
-from ultralytics import YOLO
 import numpy as np
-from collections import deque
+import time
 from datetime import datetime
+from ultralytics import YOLO
 
-# Load YOLO model
-model = YOLO('yolov5s.pt')
+# Load YOLO model - using a more accurate model and increasing confidence threshold
+model = YOLO('yolov8n.pt')  # Using YOLOv8 nano instead of YOLOv5
 
-# Create folder for dropped images
-os.makedirs("dropped_images", exist_ok=True)
+# Create folders for output
+os.makedirs("litter_clips", exist_ok=True)
+os.makedirs("litter_images", exist_ok=True)
 
-cap = cv2.VideoCapture(0)
+# Parameters
+COMPARISON_INTERVAL = 5  # Time in seconds between frame comparisons
+DETECTION_THRESHOLD = 0.35  # Lowered confidence threshold for detections
+IOU_THRESHOLD = 0.3  # IoU threshold for considering same region
 
-# Object tracking
-tracked_objects = {}  # id: {"centroids": deque, "cooldown": time, "last_seen": time, "has_dropped": bool}
-next_object_id = 0
-drop_counter = 0
-
-# Parameters - adjusted with higher thresholds
-DROP_THRESHOLD = 60  # Pixel threshold for vertical movement
-COOLDOWN_SECONDS = 3
-MAX_HISTORY = 10
-MIN_FRAMES_BEFORE_DROP = 5
-MAX_DISTANCE = 80
-DROP_SPEED_THRESHOLD = 150
+# Define classes that could be litter (not just limited to bottles)
+LITTER_CLASSES = {
+    0: 'person',  # For testing detection
+    39: 'bottle',
+    41: 'cup',
+    44: 'bottle cap',
+    76: 'scissors',
+    77: 'teddy bear',
+    84: 'book'
+    # Add more classes as needed
+}
 
 def add_timestamp_to_image(image, text=None):
     """Add timestamp and optional text to image"""
@@ -38,243 +40,255 @@ def add_timestamp_to_image(image, text=None):
     cv2.putText(img_copy, timestamp, (10, img_copy.shape[0] - 20),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
     
-    # Add drop event text if provided
+    # Add event text if provided
     if text:
         cv2.putText(img_copy, text, (10, 30),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
     
     return img_copy
 
-def get_centroid(box):
-    x1, y1, x2, y2 = box
-    return int((x1 + x2) / 2), int((y1 + y2) / 2)
+def calculate_iou(box1, box2):
+    """Calculate IoU between two bounding boxes"""
+    # Convert boxes to [x1, y1, x2, y2] format
+    box1 = [int(box1[0]), int(box1[1]), int(box1[2]), int(box1[3])]
+    box2 = [int(box2[0]), int(box2[1]), int(box2[2]), int(box2[3])]
+    
+    # Calculate intersection area
+    x_left = max(box1[0], box2[0])
+    y_top = max(box1[1], box2[1])
+    x_right = min(box1[2], box2[2])
+    y_bottom = min(box1[3], box2[3])
+    
+    if x_right < x_left or y_bottom < y_top:
+        return 0.0
+    
+    intersection_area = (x_right - x_left) * (y_bottom - y_top)
+    
+    # Calculate union area
+    box1_area = (box1[2] - box1[0]) * (box1[3] - box1[1])
+    box2_area = (box2[2] - box2[0]) * (box2[3] - box2[1])
+    union_area = box1_area + box2_area - intersection_area
+    
+    # Calculate IoU
+    iou = intersection_area / union_area if union_area > 0 else 0
+    
+    return iou
 
-def match_centroids(current_centroids, tracked_objects):
-    global next_object_id
-    matches = {}
-    used_current = set()
-    
-    # First, try to match with recently seen objects
-    for obj_id, data in tracked_objects.items():
-        if time.time() - data["last_seen"] > 1.0:  # Skip if not seen recently
-            continue
-            
-        prev_c = data["centroids"][-1]
-        best_match = None
-        min_dist = MAX_DISTANCE
-        
-        for i, curr_c in enumerate(current_centroids):
-            if i in used_current:
-                continue
-
-            dist = np.linalg.norm(np.array(curr_c) - np.array(curr_c))  # <--- This also has a bug (see below)
-            
-            if dist < min_dist:
-                min_dist = dist
-                best_match = obj_id  # <-- fix this too
-
-    
-    # Create new objects for unmatched centroids
-    for i, curr_c in enumerate(current_centroids):
-        if i not in used_current:
-            tracked_objects[next_object_id] = {
-                "centroids": deque([curr_c], maxlen=MAX_HISTORY),
-                "cooldown": 0,
-                "last_seen": time.time(),
-                "has_dropped": False,
-                "drop_start_time": 0,
-                "frames_during_drop": []  # Store frames during drop motion
-            }
-            matches[next_object_id] = curr_c
-            next_object_id += 1
-    
-    return matches
-
-def is_drop_motion(centroids_history, current_time, cooldown_time):
-    # Check if we have enough history
-    if len(centroids_history) < MIN_FRAMES_BEFORE_DROP:
-        return False
-    
-    # Check cooldown
-    if current_time - cooldown_time < COOLDOWN_SECONDS:
-        return False
-    
-    # Get first part (earlier positions) and last part (recent positions)
-    first_part = list(centroids_history)[:len(centroids_history)//2]
-    last_part = list(centroids_history)[len(centroids_history)//2:]
-    
-    if len(first_part) < 2 or len(last_part) < 2:
-        return False
-    
-    # Calculate average y positions
-    early_avg_y = np.mean([c[1] for c in first_part])
-    recent_avg_y = np.mean([c[1] for c in last_part])
-    
-    # Calculate vertical difference
-    dy = recent_avg_y - early_avg_y
-    
-    # Check if the motion is primarily downward with minimal horizontal movement
-    horizontal_movement = abs(np.mean([c[0] for c in last_part]) - np.mean([c[0] for c in first_part]))
-    
-    # Calculate the speed of the drop (pixels per second)
-    time_span = max(0.1, len(centroids_history) / 30.0)  # estimate based on ~30fps
-    drop_speed = dy / time_span
-    
-    # Return True if it's a downward motion exceeding thresholds
-    is_drop = (dy > DROP_THRESHOLD and 
-              horizontal_movement < dy * 0.6 and  # Stricter horizontal constraint
-              drop_speed > DROP_SPEED_THRESHOLD)
-    
-    return is_drop
-
-# Function to capture multiple frames during drop
-def start_collecting_frames(obj):
-    obj["collecting_frames"] = True
-    obj["frames_during_drop"] = []  # Reset frames collection
-
-def stop_collecting_frames(obj):
-    obj["collecting_frames"] = False
-    return obj["frames_during_drop"]
-
-while cap.isOpened():
-    success, frame = cap.read()
-    if not success:
-        break
-    
-    current_time = time.time()
-    
+def detect_litter(frame):
+    """Detect potential litter objects in the frame and return bounding boxes"""
     results = model(frame, verbose=False)[0]
-    current_centroids = []
+    litter_objects = []
     
-    # Filter ONLY for bottle objects (class 39 in COCO dataset)
+    # Debug: Print all detections
+    print("All detections:")
     for det in results.boxes.data:
         x1, y1, x2, y2, conf, cls = det.tolist()
-        
-        # Only consider bottles (class 39) with high confidence
-        if int(cls) == 39 and conf > 0.7:  # Class 39 is bottle in COCO dataset
-            cx, cy = get_centroid((int(x1), int(y1), int(x2), int(y2)))
-            current_centroids.append((cx, cy))
-            
-            # Draw a red box with "Bottle" label for bottles
-            cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 0, 255), 2)
-            cv2.putText(frame, "Bottle", (int(x1), int(y1) - 10),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+        cls_id = int(cls)
+        print(f"Class: {cls_id}, Confidence: {conf:.2f}")
     
-    matched = match_centroids(current_centroids, tracked_objects)
-    
-    # Update tracking data
-    for obj_id, centroid in matched.items():
-        obj = tracked_objects[obj_id]
-        obj["centroids"].append(centroid)
-        obj["last_seen"] = current_time
+    for det in results.boxes.data:
+        x1, y1, x2, y2, conf, cls = det.tolist()
+        cls_id = int(cls)
         
-        # If we're collecting frames for this object, store the current frame
-        if obj.get("collecting_frames", False):
-            # Store a copy of the frame with timestamp
-            obj["frames_during_drop"].append((frame.copy(), current_time))
+        # Check if it's one of our monitored classes
+        if cls_id in LITTER_CLASSES and conf > DETECTION_THRESHOLD:
+            class_name = LITTER_CLASSES[cls_id]
+            litter_objects.append([x1, y1, x2, y2, conf, cls_id, class_name])
             
-            # If we've collected enough frames or time has passed, process them
-            drop_duration = current_time - obj.get("drop_start_time", current_time)
-            if drop_duration > 1.0 or len(obj["frames_during_drop"]) > 15:
-                frames = stop_collecting_frames(obj)
+    return litter_objects
+
+def is_new_litter(current_objects, previous_objects):
+    """Check if there are new litter objects in the current frame that weren't in the previous frame"""
+    new_litter = []
+    
+    # For each current object, check if it matches any previous object
+    for current_box in current_objects:
+        is_new = True
+        
+        for prev_box in previous_objects:
+            # Only compare if they're the same class
+            if current_box[5] == prev_box[5]:
+                iou = calculate_iou(current_box[:4], prev_box[:4])
                 
-                # Choose the best frame (middle of the drop)
-                if frames:
-                    # For a single image, use the middle frame of the drop sequence
-                    middle_idx = len(frames) // 2
-                    best_frame, frame_time = frames[middle_idx]
+                # If IoU is above threshold, it's the same object
+                if iou > IOU_THRESHOLD:
+                    is_new = False
+                    break
                     
-                    # Add timestamp and text to the image
-                    drop_text = f"Drop #{drop_counter} - Bottle #{obj_id}"
-                    timestamped_img = add_timestamp_to_image(best_frame, drop_text)
+        if is_new:
+            new_litter.append(current_box)
+            
+    return new_litter
+
+def main():
+    # Get input video file
+    video_path = input("Enter path to video file: ")
+    
+    # Open video file
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        print(f"Error: Could not open video file {video_path}")
+        return
+    
+    # Get video properties
+    fps = int(cap.get(cv2.CAP_PROP_FPS))
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    
+    print(f"Video details: {width}x{height}, {fps} FPS, {total_frames} frames")
+    
+    # Calculate frames per comparison interval
+    frames_per_interval = COMPARISON_INTERVAL * fps
+    
+    # Variables for frame comparison
+    previous_frame = None
+    previous_objects = []
+    frame_count = 0
+    litter_count = 0
+    
+    # Variables for storing video clip frames
+    buffered_frames = []
+    
+    # Determine the video format based on OS
+    if os.name == 'nt':  # Windows
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        video_ext = '.avi'
+    else:  # Linux/Mac
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Changed to more compatible codec
+        video_ext = '.mp4'
+    
+    # Process the first frame
+    ret, first_frame = cap.read()
+    if not ret:
+        print("Failed to read first frame")
+        return
+    
+    previous_frame = first_frame.copy()
+    previous_objects = detect_litter(previous_frame)
+    print(f"Initial detection found {len(previous_objects)} potential litter objects")
+    
+    # Debug display of initial detections
+    debug_frame = previous_frame.copy()
+    for obj in previous_objects:
+        x1, y1, x2, y2, conf, cls_id, class_name = obj
+        cv2.rectangle(debug_frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
+        cv2.putText(debug_frame, f"{class_name} {conf:.2f}", (int(x1), int(y1) - 10),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+    
+    cv2.imshow("Initial Detections", cv2.resize(debug_frame, (840, 660)))
+    cv2.waitKey(1000)  # Show for 1 second
+    
+    # Main loop
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+        
+        # Add current frame to buffer
+        buffered_frames.append(frame.copy())
+        frame_count += 1
+        
+        # Process every COMPARISON_INTERVAL * fps frames
+        if frame_count % frames_per_interval == 0:
+            print(f"\nProcessing frame {frame_count}/{total_frames} ({frame_count/total_frames*100:.1f}%)")
+            
+            # Detect litter objects in current frame
+            current_objects = detect_litter(frame)
+            print(f"Current frame detection found {len(current_objects)} potential litter objects")
+            
+            # Draw detections on current frame
+            display_frame = frame.copy()
+            for obj in current_objects:
+                x1, y1, x2, y2, conf, cls_id, class_name = obj
+                cv2.rectangle(display_frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 0, 255), 2)
+                cv2.putText(display_frame, f"{class_name} {conf:.2f}", (int(x1), int(y1) - 10),
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+            
+            # Check for new litter
+            new_litter = is_new_litter(current_objects, previous_objects)
+            print(f"Found {len(new_litter)} new litter objects")
+            
+            if new_litter:
+                # Found new litter!
+                litter_count += len(new_litter)
+                print(f"[LITTER DETECTED] Found {len(new_litter)} new pieces of litter")
+                
+                # Generate unique timestamp
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                
+                # Save annotated image
+                litter_img = display_frame.copy()
+                for obj in new_litter:
+                    x1, y1, x2, y2, conf, cls_id, class_name = obj
+                    cv2.rectangle(litter_img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 3)
+                    cv2.putText(litter_img, f"NEW {class_name}", (int(x1), int(y1) - 10),
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+                
+                litter_text = f"Litter Detected - Count: {litter_count}"
+                litter_img = add_timestamp_to_image(litter_img, litter_text)
+                
+                # Save image
+                img_filename = f"litter_images/litter_{timestamp}.jpg"
+                cv2.imwrite(img_filename, litter_img)
+                print(f"Saved litter image: {img_filename}")
+                
+                # Save video clip if there are buffered frames
+                if buffered_frames:
+                    clip_filename = f"litter_clips/litter_clip_{timestamp}{video_ext}"
                     
-                    # Save the timestamped image
-                    timestamp = int(current_time)
-                    filename = f"dropped_images/drop_{drop_counter}_{timestamp}.jpg"
-                    cv2.imwrite(filename, timestamped_img)
-                    print(f"[Drop {drop_counter}] Image saved as {filename}")
+                    # Ensure dimensions
+                    frame_height, frame_width = buffered_frames[0].shape[:2]
+                    
+                    print(f"Creating video writer: {frame_width}x{frame_height}, FPS: {fps}")
+                    out = cv2.VideoWriter(clip_filename, fourcc, fps, (frame_width, frame_height))
+                    
+                    # Check if writer opened correctly
+                    if not out.isOpened():
+                        print("ERROR: Could not create video writer")
+                    else:
+                        # Write all buffered frames to video
+                        for f in buffered_frames:
+                            out.write(f)
+                        out.release()
+                        print(f"Saved litter clip: {clip_filename}")
+            
+            # Update previous frame and detections
+            previous_frame = frame.copy()
+            previous_objects = current_objects
+            
+            # Clear buffer after saving clip to start fresh for next comparison
+            buffered_frames = []
         
-        # Check for drop motion
-        if not obj["has_dropped"] and len(obj["centroids"]) >= MIN_FRAMES_BEFORE_DROP:
-            if is_drop_motion(obj["centroids"], current_time, obj["cooldown"]):
-                # Detected a drop
-                drop_counter += 1
-                print(f"[Drop {drop_counter}] by Bottle {obj_id} at {current_time:.2f}")
-                
-                # Start collecting frames for this drop event
-                obj["drop_start_time"] = current_time
-                start_collecting_frames(obj)
-                
-                # Update object state
-                obj["cooldown"] = current_time
-                obj["has_dropped"] = True
+        # Keep buffer size limited to the current interval
+        if len(buffered_frames) > frames_per_interval:
+            buffered_frames.pop(0)
         
-        # Reset drop flag after cooldown
-        if obj["has_dropped"] and current_time - obj["cooldown"] > COOLDOWN_SECONDS:
-            obj["has_dropped"] = False
+        # Display the frame with date/time and litter count
+        info_frame = frame.copy()
+        cv2.putText(info_frame, f"Litter Count: {litter_count}", (20, 40),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (36, 0, 255), 2)
+        cv2.putText(info_frame, f"Frame: {frame_count}/{total_frames}", (20, 80),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (36, 0, 255), 2)
+        cv2.putText(info_frame, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
+                    (info_frame.shape[1] - 230, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        
+        # Resize for display
+        resized = cv2.resize(info_frame, (840, 660))
+        cv2.imshow("Litter Detection", resized)
+        
+        # Slow down display for better visualization (remove in production)
+        if cv2.waitKey(10) & 0xFF == ord("q"):
+            break
     
-    # Remove stale objects
-    to_delete = [obj_id for obj_id, data in tracked_objects.items() 
-                if current_time - data["last_seen"] > 1.5]
-    for obj_id in to_delete:
-        del tracked_objects[obj_id]
+    # Clean up
+    cap.release()
+    cv2.destroyAllWindows()
     
-    # Draw tracking information for bottles
-    for obj_id, data in tracked_objects.items():
-        if current_time - data["last_seen"] < 1.0:
-            # Get last known position
-            cx, cy = data["centroids"][-1]
-            
-            # Draw circle at centroid
-            cv2.circle(frame, (cx, cy), 5, (0, 255, 0), -1)
-            
-            # Draw object ID
-            cv2.putText(frame, f"Bottle:{obj_id}", (cx + 10, cy - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-            
-            # Draw trajectory (last few positions)
-            points = list(data["centroids"])
-            for i in range(1, len(points)):
-                cv2.line(frame, points[i-1], points[i], (0, 255, 0), 2)
-    
-    # Display drop counter and current time on frame
-    current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    cv2.putText(frame, f"Bottles Dropped: {drop_counter}", (20, 40),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (36, 0, 255), 2)
-    cv2.putText(frame, current_datetime, (frame.shape[1] - 230, 30),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-    
-    resized = cv2.resize(frame, (840, 660))
-    cv2.imshow("Bottle Drop Detection", resized)
-    
-    if cv2.waitKey(1) & 0xFF == ord("q"):
-        break
+    print(f"\nTotal litter detected: {litter_count}")
+    print(f"Litter images saved in the 'litter_images' folder")
+    print(f"Litter video clips saved in the 'litter_clips' folder")
 
-# Release resources
-def upload_to_convex(image_path, timestamp):
-    try:
-        # Step 1: Get the upload URL from your Next.js API
-        response = requests.get("https://hip-wolverine-698.convex.cloud")
-        upload_url = response.json()["uploadUrl"]
-
-        # Step 2: Upload the image to Convex file storage
-        with open(image_path, "rb") as f:
-            upload_response = requests.post(upload_url, files={"file": f})
-            storage_id = upload_response.json()["storageId"]
-
-        # Step 3: Call your SaveDroppedImage mutation
-        save_data = {
-            "image": storage_id,
-            "timestamp": timestamp
-        }
-        r = requests.post("http://localhost:3000/api/save-dropped-image", json=save_data)
-        print("Uploaded to Convex:", r.json())
-
-    except Exception as e:
-        print("Upload failed:", e)
-
-cap.release()
-cv2.destroyAllWindows()
-
-print(f"\nTotal drops detected: {drop_counter}")
-print(f"Images saved in the 'dropped_images' folder")
+if __name__ == "__main__":
+    main()
