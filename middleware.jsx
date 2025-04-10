@@ -4,7 +4,9 @@ import { stackServerApp } from './stack';
 export async function middleware(request) {
     const user = await stackServerApp.getUser();
     if (!user) {
-      return NextResponse.redirect(new URL('/handler/sign-in', request.url));
+      const redirectUrl = new URL('/handler/sign-in', request.url);
+      redirectUrl.searchParams.set('/dashboard', request.nextUrl.pathname);
+      return NextResponse.redirect(redirectUrl);
     }
     return NextResponse.next();
   }
@@ -12,6 +14,6 @@ export async function middleware(request) {
   export const config = {
     // You can add your own route protection logic here
     // Make sure not to protect the root URL, as it would prevent users from accessing static Next.js files or Stack's /handler path
-    matcher: '/protected/:path*',
+    matcher: '/dashboard/:path*',
   };
   
