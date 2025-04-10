@@ -1,6 +1,6 @@
 // pages/dashboard.js
 'use client'
-import { useState, useEffect } from 'react';
+import { useState, useEffect, SetStateAction } from 'react';
 import Head from 'next/head';
 import { 
   ChevronDown, 
@@ -24,6 +24,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
+import { UserButton, useUser } from '@stackframe/stack';
 
 // Mock data for the dashboard
 const mockIncidents = [
@@ -69,15 +70,17 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [dateRange, setDateRange] = useState('today');
   const [notificationCount, setNotificationCount] = useState(5);
+
+  const user = useUser()
   
   // Functions to handle different actions
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
   const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen);
-  const handleTabChange = (tab) => setActiveTab(tab);
-  const handleDateRangeChange = (range) => setDateRange(range);
+  const handleTabChange = (tab: SetStateAction<string>) => setActiveTab(tab);
+  const handleDateRangeChange = (range: SetStateAction<string>) => setDateRange(range);
   
   // Format date for display
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string | number | Date) => {
     const date = new Date(dateString);
     return date.toLocaleString('en-US', { 
       month: 'short', 
@@ -89,7 +92,7 @@ export default function Dashboard() {
   };
   
   // Get severity color
-  const getSeverityColor = (severity) => {
+  const getSeverityColor = (severity: string) => {
     switch(severity) {
       case 'high': return 'bg-red-100 text-red-800';
       case 'medium': return 'bg-yellow-100 text-yellow-800';
@@ -99,7 +102,7 @@ export default function Dashboard() {
   };
   
   // Get status color
-  const getStatusColor = (status) => {
+  const getStatusColor = (status: string) => {
     switch(status) {
       case 'pending': return 'bg-blue-100 text-blue-800';
       case 'verified': return 'bg-purple-100 text-purple-800';
@@ -110,11 +113,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Head>
-        <title>CIDROY Dashboard | AI Littering Detection</title>
-        <meta name="description" content="Administrative dashboard for CIDROY AI littering detection system" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
 
       {/* Mobile menu overlay */}
       {mobileMenuOpen && (
@@ -291,16 +289,16 @@ export default function Dashboard() {
             {sidebarOpen ? (
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                  <User size={20} className="text-gray-600" />
+                  <UserButton/>
                 </div>
                 <div>
-                  <p className="font-medium text-gray-800">Admin User</p>
-                  <p className="text-sm text-gray-500">admin@cidroy.com</p>
+                  <p className="font-medium text-gray-800">{user?.displayName}</p>
+                  <p className="text-sm text-gray-500">{user?.primaryEmail}</p>
                 </div>
               </div>
             ) : (
               <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                <User size={20} className="text-gray-600" />
+                <UserButton/>
               </div>
             )}
           </div>
@@ -371,12 +369,9 @@ export default function Dashboard() {
               
               {/* User dropdown */}
               <div className="relative">
-                <button className="flex items-center space-x-1 p-1 border border-transparent hover:border-gray-300 rounded-full">
                   <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                    <User size={18} className="text-gray-600" />
+                    <UserButton/>
                   </div>
-                  <ChevronDown size={16} className="text-gray-600" />
-                </button>
               </div>
             </div>
           </div>
@@ -544,8 +539,6 @@ export default function Dashboard() {
                       <tbody>
                         {mockIncidents.slice(0, 4).map((incident) => (
                           <tr key={incident.id} className="border-b">
-                            // ...existing code...
-
               <td className="px-4 py-3 text-sm text-gray-700">{formatDate(incident.timestamp)}</td>
               <td className={`px-4 py-3 text-sm font-medium ${getSeverityColor(incident.severity)}`}>{incident.severity}</td>
               <td className={`px-4 py-3 text-sm font-medium ${getStatusColor(incident.status)}`}>{incident.status}</td>
