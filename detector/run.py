@@ -6,22 +6,25 @@ import numpy as np
 from collections import deque
 
 # Load YOLO model
-model = YOLO('yolov5s.pt')
+model = YOLO('yolov5su')  # Replace with 'litter.pt' if you have a custom-trained model
 
 # Create folder for dropped images
 os.makedirs("dropped_images", exist_ok=True)
 
 cap = cv2.VideoCapture(0)
 
-# Object tracking
-tracked_objects = {}  # id: {"centroids": deque, "cooldown": time, "last_seen": time}
+# Tracking
+tracked_objects = {}
 next_object_id = 0
 drop_counter = 0
 
 # Parameters
-DROP_THRESHOLD = 30  # Pixel threshold for vertical movement
+DROP_THRESHOLD = 30
 COOLDOWN_SECONDS = 4
-MAX_HISTORY = 6  # More history smooths detection
+MAX_HISTORY = 6
+
+# Approximate "litter" classes from COCO
+LITTER_CLASSES = [39, 41, 48, 49, 50, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 84]
 
 def get_centroid(box):
     x1, y1, x2, y2 = box
@@ -33,7 +36,7 @@ def match_centroids(current_centroids, tracked_objects):
 
     for curr_c in current_centroids:
         matched_id = None
-        min_dist = 60  # max distance to consider same object
+        min_dist = 60
 
         for obj_id, data in tracked_objects.items():
             if time.time() - data["cooldown"] < COOLDOWN_SECONDS:
@@ -65,11 +68,14 @@ while cap.isOpened():
         break
 
     results = model(frame, verbose=False)[0]
+    filtered_boxes = []
     current_centroids = []
 
     for det in results.boxes.data:
         x1, y1, x2, y2, conf, cls = det
-        if int(cls.item()) == 0:  # Litter class
+        class_id = int(cls.item())
+        if class_id in LITTER_CLASSES:
+            filtered_boxes.append([x1.item(), y1.item(), x2.item(), y2.item(), conf.item(), class_id])
             cx, cy = get_centroid((x1, y1, x2, y2))
             current_centroids.append((cx, cy))
 
@@ -88,23 +94,26 @@ while cap.isOpened():
             if dy > DROP_THRESHOLD and (time.time() - obj["cooldown"]) > COOLDOWN_SECONDS:
                 drop_counter += 1
                 print(f"[Drop {drop_counter}] by Object {obj_id} (Δy={dy:.1f})")
-
                 timestamp = int(time.time())
                 cv2.imwrite(f"dropped_images/drop_{timestamp}.jpg", frame)
                 obj["cooldown"] = time.time()
 
-    # Remove stale objects
     now = time.time()
     to_delete = [obj_id for obj_id, data in tracked_objects.items() if now - data["last_seen"] > 3]
     for obj_id in to_delete:
         del tracked_objects[obj_id]
 
-    annotated_frame = results.plot()
-    cv2.putText(annotated_frame, f"Drops Detected: {drop_counter}", (20, 40),
+    for box in filtered_boxes:
+        x1, y1, x2, y2, conf, class_id = box
+        label = f"{model.names[class_id]} {conf:.2f}"
+        cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 255), 2)
+        cv2.putText(frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+
+    cv2.putText(frame, f"Drops Detected: {drop_counter}", (20, 40),
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (36, 0, 255), 2)
 
-    resized = cv2.resize(annotated_frame, (840, 660))
-    cv2.imshow("Litter Detection", resized)
+    resized = cv2.resize(frame, (840, 660))
+    cv2.imshow("Litter Detection (Simulated)", resized)
 
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
