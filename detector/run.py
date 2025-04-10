@@ -4,9 +4,10 @@ import os
 from ultralytics import YOLO
 import numpy as np
 from collections import deque
+from datetime import datetime
 
 # Load YOLO model
-model = YOLO('yolov5su')  # Replace with 'litter.pt' if you have a custom-trained model
+model = YOLO('yolov5s.pt')
 
 # Create folder for dropped images
 os.makedirs("dropped_images", exist_ok=True)
@@ -14,14 +15,35 @@ os.makedirs("dropped_images", exist_ok=True)
 cap = cv2.VideoCapture(0)
 
 # Object tracking
-tracked_objects = {}  # id: {"centroids": deque, "cooldown": time, "last_seen": time}
+tracked_objects = {}  # id: {"centroids": deque, "cooldown": time, "last_seen": time, "has_dropped": bool}
 next_object_id = 0
 drop_counter = 0
 
-# Parameters
-DROP_THRESHOLD = 30  # Pixel threshold for vertical movement
-COOLDOWN_SECONDS = 4
-MAX_HISTORY = 6  # More history smooths detection
+# Parameters - adjusted with higher thresholds
+DROP_THRESHOLD = 60  # Pixel threshold for vertical movement
+COOLDOWN_SECONDS = 3
+MAX_HISTORY = 10
+MIN_FRAMES_BEFORE_DROP = 5
+MAX_DISTANCE = 80
+DROP_SPEED_THRESHOLD = 150
+
+def add_timestamp_to_image(image, text=None):
+    """Add timestamp and optional text to image"""
+    img_copy = image.copy()
+    
+    # Get current date and time
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Add timestamp at the bottom
+    cv2.putText(img_copy, timestamp, (10, img_copy.shape[0] - 20),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+    
+    # Add drop event text if provided
+    if text:
+        cv2.putText(img_copy, text, (10, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+    
+    return img_copy
 
 def get_centroid(box):
     x1, y1, x2, y2 = box
@@ -30,13 +52,19 @@ def get_centroid(box):
 def match_centroids(current_centroids, tracked_objects):
     global next_object_id
     matches = {}
-
-    for curr_c in current_centroids:
-        matched_id = None
-        min_dist = 60  # max distance to consider same object
-
-        for obj_id, data in tracked_objects.items():
-            if time.time() - data["cooldown"] < COOLDOWN_SECONDS:
+    used_current = set()
+    
+    # First, try to match with recently seen objects
+    for obj_id, data in tracked_objects.items():
+        if time.time() - data["last_seen"] > 1.0:  # Skip if not seen recently
+            continue
+            
+        prev_c = data["centroids"][-1]
+        best_match = None
+        min_dist = MAX_DISTANCE
+        
+        for i, curr_c in enumerate(current_centroids):
+            if i in used_current:
                 continue
                 
             dist = np.linalg.norm(np.array(curr_c) - np.array(prev_c))
@@ -57,7 +85,8 @@ def match_centroids(current_centroids, tracked_objects):
                 "cooldown": 0,
                 "last_seen": time.time(),
                 "has_dropped": False,
-                "drop_start_time": 0
+                "drop_start_time": 0,
+                "frames_during_drop": []  # Store frames during drop motion
             }
             matches[next_object_id] = curr_c
             next_object_id += 1
@@ -96,10 +125,19 @@ def is_drop_motion(centroids_history, current_time, cooldown_time):
     
     # Return True if it's a downward motion exceeding thresholds
     is_drop = (dy > DROP_THRESHOLD and 
-              horizontal_movement < dy * 0.6 and  # Even stricter horizontal constraint
+              horizontal_movement < dy * 0.6 and  # Stricter horizontal constraint
               drop_speed > DROP_SPEED_THRESHOLD)
     
     return is_drop
+
+# Function to capture multiple frames during drop
+def start_collecting_frames(obj):
+    obj["collecting_frames"] = True
+    obj["frames_during_drop"] = []  # Reset frames collection
+
+def stop_collecting_frames(obj):
+    obj["collecting_frames"] = False
+    return obj["frames_during_drop"]
 
 while cap.isOpened():
     success, frame = cap.read()
@@ -109,14 +147,15 @@ while cap.isOpened():
     current_time = time.time()
     
     results = model(frame, verbose=False)[0]
-    filtered_boxes = []
     current_centroids = []
     
     # Filter ONLY for bottle objects (class 39 in COCO dataset)
     for det in results.boxes.data:
-        x1, y1, x2, y2, conf, cls = det
-        if int(cls.item()) == 0:  # Litter class
-            cx, cy = get_centroid((x1, y1, x2, y2))
+        x1, y1, x2, y2, conf, cls = det.tolist()
+        
+        # Only consider bottles (class 39) with high confidence
+        if int(cls) == 39 and conf > 0.7:  # Class 39 is bottle in COCO dataset
+            cx, cy = get_centroid((int(x1), int(y1), int(x2), int(y2)))
             current_centroids.append((cx, cy))
             
             # Draw a red box with "Bottle" label for bottles
@@ -132,32 +171,90 @@ while cap.isOpened():
         obj["centroids"].append(centroid)
         obj["last_seen"] = current_time
         
+        # If we're collecting frames for this object, store the current frame
+        if obj.get("collecting_frames", False):
+            # Store a copy of the frame with timestamp
+            obj["frames_during_drop"].append((frame.copy(), current_time))
+            
+            # If we've collected enough frames or time has passed, process them
+            drop_duration = current_time - obj.get("drop_start_time", current_time)
+            if drop_duration > 1.0 or len(obj["frames_during_drop"]) > 15:
+                frames = stop_collecting_frames(obj)
+                
+                # Choose the best frame (middle of the drop)
+                if frames:
+                    # For a single image, use the middle frame of the drop sequence
+                    middle_idx = len(frames) // 2
+                    best_frame, frame_time = frames[middle_idx]
+                    
+                    # Add timestamp and text to the image
+                    drop_text = f"Drop #{drop_counter} - Bottle #{obj_id}"
+                    timestamped_img = add_timestamp_to_image(best_frame, drop_text)
+                    
+                    # Save the timestamped image
+                    timestamp = int(current_time)
+                    filename = f"dropped_images/drop_{drop_counter}_{timestamp}.jpg"
+                    cv2.imwrite(filename, timestamped_img)
+                    print(f"[Drop {drop_counter}] Image saved as {filename}")
+        
         # Check for drop motion
         if not obj["has_dropped"] and len(obj["centroids"]) >= MIN_FRAMES_BEFORE_DROP:
             if is_drop_motion(obj["centroids"], current_time, obj["cooldown"]):
                 # Detected a drop
                 drop_counter += 1
-                print(f"[Drop {drop_counter}] by Object {obj_id} (Δy={dy:.1f})")
-
-                timestamp = int(time.time())
-                cv2.imwrite(f"dropped_images/drop_{timestamp}.jpg", frame)
-                obj["cooldown"] = time.time()
-
+                print(f"[Drop {drop_counter}] by Bottle {obj_id} at {current_time:.2f}")
+                
+                # Start collecting frames for this drop event
+                obj["drop_start_time"] = current_time
+                start_collecting_frames(obj)
+                
+                # Update object state
+                obj["cooldown"] = current_time
+                obj["has_dropped"] = True
+        
+        # Reset drop flag after cooldown
+        if obj["has_dropped"] and current_time - obj["cooldown"] > COOLDOWN_SECONDS:
+            obj["has_dropped"] = False
+    
     # Remove stale objects
-    now = time.time()
-    to_delete = [obj_id for obj_id, data in tracked_objects.items() if now - data["last_seen"] > 3]
+    to_delete = [obj_id for obj_id, data in tracked_objects.items() 
+                if current_time - data["last_seen"] > 1.5]
     for obj_id in to_delete:
         del tracked_objects[obj_id]
-
-    annotated_frame = results.plot()
-    cv2.putText(annotated_frame, f"Drops Detected: {drop_counter}", (20, 40),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (36, 0, 255), 2)
-
-    resized = cv2.resize(annotated_frame, (840, 660))
-    cv2.imshow("Litter Detection", resized)
-
+    
+    # Draw tracking information for bottles
+    for obj_id, data in tracked_objects.items():
+        if current_time - data["last_seen"] < 1.0:
+            # Get last known position
+            cx, cy = data["centroids"][-1]
+            
+            # Draw circle at centroid
+            cv2.circle(frame, (cx, cy), 5, (0, 255, 0), -1)
+            
+            # Draw object ID
+            cv2.putText(frame, f"Bottle:{obj_id}", (cx + 10, cy - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            
+            # Draw trajectory (last few positions)
+            points = list(data["centroids"])
+            for i in range(1, len(points)):
+                cv2.line(frame, points[i-1], points[i], (0, 255, 0), 2)
+    
+    # Display drop counter and current time on frame
+    current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    cv2.putText(frame, f"Bottles Dropped: {drop_counter}", (20, 40),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (36, 0, 255), 2)
+    cv2.putText(frame, current_datetime, (frame.shape[1] - 230, 30),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+    
+    resized = cv2.resize(frame, (840, 660))
+    cv2.imshow("Bottle Drop Detection", resized)
+    
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
 
 cap.release()
 cv2.destroyAllWindows()
+
+print(f"\nTotal drops detected: {drop_counter}")
+print(f"Images saved in the 'dropped_images' folder")
