@@ -7,7 +7,7 @@ import { FloatingDockDemo } from '../components/dock'
 const page = () => {
   return (
     <div>
-      <UserButton/>
+      <Home />
       <FloatingDockDemo />
     </div>
   )
