@@ -10,16 +10,16 @@ import numpy as np
 os.makedirs('videos', exist_ok=True)
 
 # Load YOLOv4-tiny model
-net = cv2.dnn.readNet("models/yolov4-tiny.weights", "models/yolov4-tiny.cfg")
+net = cv2.dnn.readNet("yolov4-tiny.weights", "yolov4-tiny.cfg")
 layer_names = net.getLayerNames()
 output_layers = [layer_names[i - 1] for i in net.getUnconnectedOutLayers().flatten()]
 
 # Load COCO class labels
-with open("models/coco.names", "r") as f:
+with open("coco.names", "r") as f:
     classes = [line.strip() for line in f.readlines()]
 
 # ✅ Replace this with your actual video path
-video_path = "video/vid.mp4"
+video_path = "videos/sample.mp4"
 cap = cv2.VideoCapture(video_path)
 
 # Get FPS and resolution
@@ -70,7 +70,7 @@ while cap.isOpened():
 
     if detected and not recording:
         now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        filename = f"video/{now}.mp4"
+        filename = f"videos/{now}.mp4"
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         video_writer = cv2.VideoWriter(filename, fourcc, FPS, frame_size)
         recording = True
