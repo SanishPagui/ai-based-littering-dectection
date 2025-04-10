@@ -37,6 +37,12 @@ export function FloatingDockDemo() {
     {
       title: "Aceternity UI",
       href: "#",
+      icon: (
+        <span className="h-full w-full text-neutral-500 dark:text-neutral-300">
+          {/* Default icon placeholder */}
+          <IconHome />
+        </span>
+      ),
     },
     {
       title: "Changelog",
