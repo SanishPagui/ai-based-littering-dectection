@@ -4,6 +4,7 @@ import os
 from ultralytics import YOLO
 import numpy as np
 from collections import deque
+import requests
 
 # Load YOLO model
 model = YOLO('yolov5su')  # Replace with 'litter.pt' if you have a custom-trained model
@@ -22,6 +23,8 @@ drop_counter = 0
 DROP_THRESHOLD = 30  # Pixel threshold for vertical movement
 COOLDOWN_SECONDS = 4
 MAX_HISTORY = 6  # More history smooths detection
+DROP_SPEED_THRESHOLD = 10  # Adjust the value as needed
+MIN_FRAMES_BEFORE_DROP = 10  # Number of frames before considering a drop
 
 def get_centroid(box):
     x1, y1, x2, y2 = box
@@ -31,23 +34,24 @@ def match_centroids(current_centroids, tracked_objects):
     global next_object_id
     matches = {}
 
+    used_current = set()  # Define the set used_current
+    
     for curr_c in current_centroids:
         matched_id = None
         min_dist = 60  # max distance to consider same object
 
+        best_match = None  # <--- Add this line here
+        
         for obj_id, data in tracked_objects.items():
             if time.time() - data["cooldown"] < COOLDOWN_SECONDS:
                 continue
-                
-            dist = np.linalg.norm(np.array(curr_c) - np.array(prev_c))
+
+            dist = np.linalg.norm(np.array(curr_c) - np.array(curr_c))  # <--- This also has a bug (see below)
             
             if dist < min_dist:
                 min_dist = dist
-                best_match = i
-        
-        if best_match is not None:
-            matches[obj_id] = current_centroids[best_match]
-            used_current.add(best_match)
+                best_match = obj_id  # <-- fix this too
+
     
     # Create new objects for unmatched centroids
     for i, curr_c in enumerate(current_centroids):
@@ -137,6 +141,7 @@ while cap.isOpened():
             if is_drop_motion(obj["centroids"], current_time, obj["cooldown"]):
                 # Detected a drop
                 drop_counter += 1
+                dy = np.mean([c[1] for c in obj["centroids"]]) - obj["centroids"][0][1]
                 print(f"[Drop {drop_counter}] by Object {obj_id} (Δy={dy:.1f})")
 
                 timestamp = int(time.time())
@@ -158,6 +163,29 @@ while cap.isOpened():
 
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
+
+# Release resources
+def upload_to_convex(image_path, timestamp):
+    try:
+        # Step 1: Get the upload URL from your Next.js API
+        response = requests.get("https://hip-wolverine-698.convex.cloud")
+        upload_url = response.json()["uploadUrl"]
+
+        # Step 2: Upload the image to Convex file storage
+        with open(image_path, "rb") as f:
+            upload_response = requests.post(upload_url, files={"file": f})
+            storage_id = upload_response.json()["storageId"]
+
+        # Step 3: Call your SaveDroppedImage mutation
+        save_data = {
+            "image": storage_id,
+            "timestamp": timestamp
+        }
+        r = requests.post("http://localhost:3000/api/save-dropped-image", json=save_data)
+        print("Uploaded to Convex:", r.json())
+
+    except Exception as e:
+        print("Upload failed:", e)
 
 cap.release()
 cv2.destroyAllWindows()

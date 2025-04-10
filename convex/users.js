@@ -47,3 +47,17 @@ export const GetUser = query({
     return user;
   },
 });
+
+export const saveVideoEvidence = mutation({
+  args: {
+    video: v.string(), // base64 .webm
+    timestamp: v.number(),
+  },
+  handler: async (ctx, { video, timestamp }) => {
+    await ctx.db.insert("litterVideos", {
+      video,
+      timestamp,
+    });
+  },
+});
+
