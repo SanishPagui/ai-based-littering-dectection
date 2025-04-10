@@ -21,10 +21,7 @@ IOU_THRESHOLD = 0.3  # IoU threshold for considering same region
 LITTER_CLASSES = {
     0: 'person',  # For testing detection
     39: 'bottle',
-    41: 'cup',
-    44: 'bottle cap',
-    76: 'scissors',
-    77: 'teddy bear',
+     41: 'cup',
     84: 'book'
     # Add more classes as needed
 }
