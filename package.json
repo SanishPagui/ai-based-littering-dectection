@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.0",
     "@heroui/react": "^2.7.6",
     "@heroui/spinner": "^2.2.14",
     "@heroui/system": "^2.4.13",

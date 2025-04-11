@@ -256,13 +256,6 @@ export default function Dashboard() {
               {sidebarOpen && <span>Incidents</span>}
             </button>
             
-            <button
-              onClick={() => handleTabChange('cameras')}
-              className={`w-full flex items-center ${sidebarOpen ? 'justify-start space-x-3' : 'justify-center'} px-4 py-3 rounded-lg ${activeTab === 'cameras' ? 'bg-green-50 text-green-700' : 'text-gray-700 hover:bg-gray-100'}`}
-            >
-              <Camera size={20} />
-              {sidebarOpen && <span>Cameras</span>}
-            </button>
             
             <button
               onClick={() => handleTabChange('map')}
