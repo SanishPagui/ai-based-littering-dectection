@@ -8,9 +8,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 const HallOfFame = () => {
   const list = [
-    { name: "Hell", image: "https://placekitten.com/300/200" },
-    { name: "Heaven", image: "https://placekitten.com/301/200" },
-    { name: "Aarav", image: "https://placekitten.com/302/200" },
+    { name: "", image: "" },
   ];
 
   const sectionRef = useRef(null);

@@ -18,7 +18,7 @@ import {
   Users,
   Filter,
   Download,
-  Trash2,
+  Trash2,                                                                                                                                       
   Check,
   ChevronLeft,
   ChevronRight,
@@ -27,6 +27,7 @@ import {
   ChevronUp
 } from 'lucide-react';
 import { UserButton, useUser } from '@stackframe/stack';
+import Link from 'next/link';
 
 // Mock data for the dashboard
 const mockIncidents = [
@@ -161,13 +162,6 @@ export default function Dashboard() {
                   <span>Incidents</span>
                 </button>
                 
-                <button
-                  onClick={() => {handleTabChange('cameras'); toggleMobileMenu();}}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg ${activeTab === 'cameras' ? 'bg-green-50 text-green-700' : 'text-gray-700 hover:bg-gray-100'}`}
-                >
-                  <Camera size={20} />
-                  <span>Cameras</span>
-                </button>
                 
                 <button
                   onClick={() => {handleTabChange('map'); toggleMobileMenu();}}
@@ -272,22 +266,17 @@ export default function Dashboard() {
               <Calendar size={20} />
               {sidebarOpen && <span>Reports</span>}
             </button>
-            
+
+            <Link href={"/profile"}>
             <button
               onClick={() => handleTabChange('users')}
               className={`w-full flex items-center ${sidebarOpen ? 'justify-start space-x-3' : 'justify-center'} px-4 py-3 rounded-lg ${activeTab === 'users' ? 'bg-green-50 text-green-700' : 'text-gray-700 hover:bg-gray-100'}`}
-            >
+              >
               <Users size={20} />
               {sidebarOpen && <span>Users</span>}
             </button>
+              </Link>
             
-            <button
-              onClick={() => handleTabChange('settings')}
-              className={`w-full flex items-center ${sidebarOpen ? 'justify-start space-x-3' : 'justify-center'} px-4 py-3 rounded-lg ${activeTab === 'settings' ? 'bg-green-50 text-green-700' : 'text-gray-700 hover:bg-gray-100'}`}
-            >
-              <Settings size={20} />
-              {sidebarOpen && <span>Settings</span>}
-            </button>
           </nav>
           
           {/* Sidebar footer - User info */}
@@ -394,7 +383,7 @@ export default function Dashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-500">Total Incidents</p>
-                      <p className="text-2xl font-bold text-gray-800 mt-1">{litterCount}</p>
+                      <p className="text-2xl font-bold text-gray-800 mt-1">437</p>
                     </div>
                     <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
                       <AlertTriangle size={24} className="text-blue-600" />
