@@ -301,10 +301,6 @@ export default function Dashboard() {
           {/* Sign out button */}
           {sidebarOpen && (
             <div className="p-4 border-t border-gray-200">
-              <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
-                <LogOut size={18} />
-                <span>Sign Out</span>
-              </button>
             </div>
           )}
         </div>
