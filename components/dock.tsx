@@ -21,43 +21,11 @@ export function FloatingDockDemo() {
     },
 
     {
-      title: "Products",
+      title: "dashboard",
       icon: (
         <IconTerminal2 className="h-full w-full text-neutral-500 dark:text-neutral-300" />
       ),
-      href: "#",
-    },
-    {
-      title: "Components",
-      icon: (
-        <IconNewSection className="h-full w-full text-neutral-500 dark:text-neutral-300" />
-      ),
-      href: "#",
-    },
-    {
-      title: "Aceternity UI",
-      href: "#",
-      icon: (
-        <span className="h-full w-full text-neutral-500 dark:text-neutral-300">
-          {/* Default icon placeholder */}
-          <IconHome />
-        </span>
-      ),
-    },
-    {
-      title: "Changelog",
-      icon: (
-        <IconExchange className="h-full w-full text-neutral-500 dark:text-neutral-300" />
-      ),
-      href: "#",
-    },
-
-    {
-      title: "Twitter",
-      icon: (
-        <IconBrandX className="h-full w-full text-neutral-500 dark:text-neutral-300" />
-      ),
-      href: "#",
+      href: "/dashboard",
     },
     {
       title: "GitHub",
@@ -66,6 +34,13 @@ export function FloatingDockDemo() {
       ),
       href: "https://github.com/SanishPagui/ai-based-littering-dectection",
     },
+    {
+      title: "X",
+      icon: (
+        <IconBrandX className="h-full w-full text-neutral-500 dark:text-neutral-300" />
+      ),
+      href: "https://twitter.com/",
+    }
   ];
   return (
     <div className="flex items-center justify-center h-[35rem] w-full">

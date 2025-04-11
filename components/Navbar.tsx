@@ -8,7 +8,7 @@ const Navbar = () => {
             <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
               <span className="text-white font-bold text-xl">C</span>
             </div>
-            <h1 className="text-2xl font-bold text-gray-800">CIDROY</h1>
+            <h1 className="text-2xl font-bold text-gray-800">CICADA</h1>
           </div>
           <nav>
             <ul className="flex space-x-8">

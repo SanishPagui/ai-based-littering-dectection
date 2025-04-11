@@ -10,7 +10,8 @@ gsap.registerPlugin(ScrollTrigger);
 const HallOfShame = () => {
   const user = useUser()
   const list = [
-    { name: user?.displayName, video: "./litter_clip_20250411_061543.mp4" },
+    { video: "./litter_clip_20250411_061543.mp4" },
+    { video: "./working/VID-20250411-WA0007.mp4" },
   ];
 
   const sectionRef = useRef(null);
@@ -42,9 +43,6 @@ const HallOfShame = () => {
               loop
               muted
             />
-            <p className="text-center font-semibold text-lg text-red-400">
-              {user.name}
-            </p>
           </div>
         ))}
       </div>

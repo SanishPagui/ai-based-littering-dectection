@@ -215,12 +215,15 @@ export default function Dashboard() {
           <div className={`flex items-center ${sidebarOpen ? 'justify-between' : 'justify-center'} h-16 px-6 border-b border-gray-200`}>
             {sidebarOpen ? (
               <>
+                <Link href={"/"}>
                 <div className="flex items-center space-x-2">
                   <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
                     <span className="text-white font-bold text-sm">C</span>
                   </div>
                   <h1 className="text-xl font-bold text-gray-800">CIDROY</h1>
                 </div>
+                
+                </Link>
                 <button onClick={toggleSidebar} className="text-gray-500">
                   <ChevronLeft size={20} />
                 </button>
@@ -379,14 +382,14 @@ export default function Dashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-500">Total Incidents</p>
-                      <p className="text-2xl font-bold text-gray-800 mt-1">437</p>
+                      <p className="text-2xl font-bold text-gray-800 mt-1">3</p>
                     </div>
                     <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
                       <AlertTriangle size={24} className="text-blue-600" />
                     </div>
                   </div>
                   <div className="mt-4 flex items-center">
-                    <span className="text-sm text-green-600 font-medium">+12% </span>
+                    <span className="text-sm font-medium">0% </span>
                     <span className="text-sm text-gray-500 ml-1">from last month</span>
                   </div>
                 </div>
@@ -394,15 +397,15 @@ export default function Dashboard() {
                 <div className="bg-white rounded-xl shadow-sm p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-500">Pending Review</p>
-                      <p className="text-2xl font-bold text-gray-800 mt-1">{mockStats.pendingReview}</p>
+                      <p className="text-sm font-medium text-gray-500">Review</p>
+                      <p className="text-2xl font-bold text-gray-800 mt-1">0</p>
                     </div>
                     <div className="w-12 h-12 bg-yellow-50 rounded-lg flex items-center justify-center">
                       <AlertTriangle size={24} className="text-yellow-600" />
                     </div>
                   </div>
                   <div className="mt-4 flex items-center">
-                    <span className="text-sm text-red-600 font-medium">+5% </span>
+                    <span className="text-sm  font-medium">0% </span>
                     <span className="text-sm text-gray-500 ml-1">from yesterday</span>
                   </div>
                 </div>
@@ -411,14 +414,14 @@ export default function Dashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-500">Resolved Today</p>
-                      <p className="text-2xl font-bold text-gray-800 mt-1">{mockStats.resolvedToday}</p>
+                      <p className="text-2xl font-bold text-gray-800 mt-1">3</p>
                     </div>
                     <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
                       <Check size={24} className="text-green-600" />
                     </div>
                   </div>
                   <div className="mt-4 flex items-center">
-                    <span className="text-sm text-green-600 font-medium">+23% </span>
+                    <span className="text-sm font-medium">0% </span>
                     <span className="text-sm text-gray-500 ml-1">from yesterday</span>
                   </div>
                 </div>
@@ -427,81 +430,19 @@ export default function Dashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-500">Active Alerts</p>
-                      <p className="text-2xl font-bold text-gray-800 mt-1">{mockStats.activeAlerts}</p>
+                      <p className="text-2xl font-bold text-gray-800 mt-1">0</p>
                     </div>
                     <div className="w-12 h-12 bg-red-50 rounded-lg flex items-center justify-center">
                       <Bell size={24} className="text-red-600" />
                     </div>
                   </div>
                   <div className="mt-4 flex items-center">
-                    <span className="text-sm text-red-600 font-medium">+3 </span>
+                    <span className="text-sm  font-medium">0</span>
                     <span className="text-sm text-gray-500 ml-1">new alerts</span>
                   </div>
                 </div>
               </div>
               
-              {/* Performance metrics */}
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                <div className="bg-white rounded-xl shadow-sm p-6 lg:col-span-2">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Performance Metrics</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <p className="text-sm font-medium text-gray-500">Litter Reduction</p>
-                      <div className="flex items-end mt-2">
-                        <span className="text-2xl font-bold text-gray-800">{mockStats.litterReduction}%</span>
-                        <span className="text-sm text-green-600 ml-2">↑</span>
-                      </div>
-                    </div>
-                    
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <p className="text-sm font-medium text-gray-500">Public Awareness</p>
-                      <div className="flex items-end mt-2">
-                        <span className="text-2xl font-bold text-gray-800">{mockStats.publicAwareness}%</span>
-                        <span className="text-sm text-green-600 ml-2">↑</span>
-                      </div>
-                    </div>
-                    
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <p className="text-sm font-medium text-gray-500">Proper Disposal</p>
-                      <div className="flex items-end mt-2">
-                        <span className="text-2xl font-bold text-gray-800">{mockStats.properDisposal}%</span>
-                        <span className="text-sm text-green-600 ml-2">↑</span>
-                      </div>
-                    </div>
-                    
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <p className="text-sm font-medium text-gray-500">Deployed Devices</p>
-                      <div className="flex items-end mt-2">
-                        <span className="text-2xl font-bold text-gray-800">{mockStats.deployedDevices}</span>
-                        <span className="text-sm text-blue-600 ml-2">→</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-white rounded-xl shadow-sm p-6 lg:col-span-2">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-800">Littering by Location</h3>
-                    <button className="text-sm text-blue-600 hover:text-blue-800">View All</button>
-                  </div>
-                  <div className="space-y-4">
-                    {mockLitterByLocation.slice(0, 4).map((item, index) => (
-                      <div key={index} className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-gray-700">{item.location}</p>
-                        <div className="flex items-center space-x-3">
-                          <div className="w-32 bg-gray-200 rounded-full h-2.5">
-                            <div 
-                              className="bg-green-600 h-2.5 rounded-full" 
-                              style={{ width: `${(item.count / mockLitterByLocation[0].count) * 100}%` }}>
-                            </div>
-                          </div>
-                          <span className="text-sm font-medium text-gray-700">{item.count}</span>
-                        </div> 
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
               
               {/* Recent incidents and activities */}
               <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -550,19 +491,6 @@ export default function Dashboard() {
           >
             View All
           </button>
-          </div>
-          <div className="space-y-4">
-          {mockRecentActivities.slice(0, 4).map((activity) => (
-            <div key={activity.id} className="flex items-center">
-            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-              <Camera size={16} className="text-gray-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm text-gray-700">{activity.action}</p>
-              <p className="text-xs text-gray-500">{activity.location} - {activity.time}</p>
-            </div>
-            </div>
-          ))}
           </div>
         </div>
         </div>

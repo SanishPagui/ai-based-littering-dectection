@@ -72,7 +72,7 @@ export default function Home() {
             <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
               <span className="text-white font-bold text-xl">C</span>
             </div>
-            <h1 className="text-2xl font-bold text-gray-800">CIDROY</h1>
+            <h1 className="text-2xl font-bold text-gray-800">CICADA</h1>
           </div>
           <div className="flex items-center space-x-8">
             <Link href='/HallOfFame'><h2 className='font-semibold text-xl'>Hall Of Fame</h2></Link>
@@ -91,7 +91,7 @@ export default function Home() {
                 AI-Powered <span className="text-green-600">Littering Detection</span> for a Cleaner Panjim
               </h1>
               <p className="text-lg text-gray-700 mb-8">
-                CIDROY's smart monitoring system uses AI to detect littering, create public awareness, and build civic accountability across Panjim, Goa.
+                CICADA's smart monitoring system uses AI to detect littering, create public awareness, and build civic accountability across Panjim, Goa.
               </p>
               <Link href='/dashboard'><button className='w-full items-center justify-center p-3 rounded-2xl bg-green-600'>Dashboard</button></Link>
               <div className="flex flex-col sm:flex-row gap-4">
@@ -111,7 +111,7 @@ export default function Home() {
         {/* Key Benefits Section */}
         <section ref={featuresRef} className="py-16 px-6 bg-white">
           <div className="container mx-auto">
-            <h2 className="text-3xl font-bold text-center mb-16 text-gray-800">How CIDROY Works</h2>
+            <h2 className="text-3xl font-bold text-center mb-16 text-gray-800">How CICADA Works</h2>
             <div className="grid md:grid-cols-3 gap-8">
               <div className="feature-card p-6 rounded-xl shadow-md bg-gradient-to-b from-gray-50 to-white">
                 <div className="bg-green-100 w-14 h-14 rounded-full flex items-center justify-center mb-5">
@@ -152,7 +152,7 @@ export default function Home() {
           <div className="container mx-auto">
             <h2 className="text-3xl font-bold text-center mb-6 text-gray-800">Proven Results</h2>
             <p className="text-lg text-center text-gray-600 mb-12 max-w-3xl mx-auto">
-              Our pilot program has already shown significant impact in areas where CIDROY has been deployed.
+              Our pilot program has already shown significant impact in areas where CICADA has been deployed.
             </p>
             
             <div className="grid md:grid-cols-4 gap-6 text-center">
@@ -190,7 +190,7 @@ export default function Home() {
                   <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
                 </svg>
                 <p className="text-gray-600 mb-4">
-                  "The CIDROY system has transformed how our city handles littering. The real-time detection and public awareness approach works incredibly well."
+                  "The CICADA system has transformed how our city handles littering. The real-time detection and public awareness approach works incredibly well."
                 </p>
                 <div>
                   <p className="font-medium text-gray-800">Mayor Rajesh Patel</p>
@@ -203,7 +203,7 @@ export default function Home() {
                   <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
                 </svg>
                 <p className="text-gray-600 mb-4">
-                  "As a business owner near the beach, I've seen firsthand how much cleaner our area has become since CIDROY was installed. Tourism has improved too."
+                  "As a business owner near the beach, I've seen firsthand how much cleaner our area has become since CICADA was installed. Tourism has improved too."
                 </p>
                 <div>
                   <p className="font-medium text-gray-800">Priya Naik</p>
@@ -216,7 +216,7 @@ export default function Home() {
                   <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
                 </svg>
                 <p className="text-gray-600 mb-4">
-                  "The data analytics provided by CIDROY have been invaluable for our environmental department in planning targeted awareness campaigns."
+                  "The data analytics provided by CICADA have been invaluable for our environmental department in planning targeted awareness campaigns."
                 </p>
                 <div>
                   <p className="font-medium text-gray-800">Dr. Sanjay Verma</p>
@@ -230,7 +230,7 @@ export default function Home() {
         {/* CTA Section */}
         <section ref={ctaRef} className="py-20 px-6 bg-green-600">
           <div className="container mx-auto text-center cta-content">
-            <h2 className="text-3xl font-bold mb-6 text-white">Ready to Join the CIDROY Initiative?</h2>
+            <h2 className="text-3xl font-bold mb-6 text-white">Ready to Join the CICADA Initiative?</h2>
             <p className="text-xl text-green-100 mb-10 max-w-3xl mx-auto">
               Sign up today to access the dashboard and be part of building a cleaner, more beautiful Panjim.
             </p>
@@ -251,7 +251,7 @@ export default function Home() {
               <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
                 <span className="text-white font-bold text-sm">C</span>
               </div>
-              <h2 className="text-xl font-bold">CIDROY</h2>
+              <h2 className="text-xl font-bold">CICADA</h2>
             </div>
             
             <div className="flex flex-col md:flex-row items-center gap-6">
@@ -262,7 +262,7 @@ export default function Home() {
             </div>
           </div>
           <div className="mt-8 pt-6 border-t border-gray-700 text-center md:text-left">
-            <p className="text-gray-400">© 2025 CIDROY. All rights reserved.</p>
+            <p className="text-gray-400">© 2025 CICADA. All rights reserved.</p>
           </div>
         </div>
       </footer>
