@@ -26,10 +26,7 @@ IOU_THRESHOLD = 0.3
 LITTER_CLASSES = {
     0: 'person',
     39: 'bottle',
-    41: 'cup',
-    44: 'bottle cap',
-    76: 'scissors',
-    77: 'teddy bear',
+     41: 'cup',
     84: 'book'
 }
 
