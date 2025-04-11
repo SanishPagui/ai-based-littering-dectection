@@ -122,7 +122,7 @@ def is_new_litter(current_objects, previous_objects):
 
 def main():
     # Get input video file
-    video_path = "C:/Users/jaiga/OneDrive/Desktop/ai-based-littering-dectection/videos/tester3.mp4"
+    video_path = "C:/ai-based-littering-dectection/videos/tester3.mp4"
     
     # Open video file
     cap = cv2.VideoCapture(video_path)

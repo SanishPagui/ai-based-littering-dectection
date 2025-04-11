@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { SignIn } from '@stackframe/stack';
 import { gsap } from 'gsap';
 import { UserButton } from '@stackframe/stack';
+import  Link  from 'next/link';
 // import { useRouter } from 'next/router';
 
 export default function Home() {
@@ -73,7 +74,9 @@ export default function Home() {
             </div>
             <h1 className="text-2xl font-bold text-gray-800">CIDROY</h1>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-8">
+            <Link href='/HallOfFame'><h2 className='font-semibold text-xl'>Hall Of Fame</h2></Link>
+            <Link href='HallOfShame'><h2 className='font-semibold text-xl'>Hall Of Shame</h2></Link>
             <UserButton/>
           </div>
         </div>
@@ -90,20 +93,9 @@ export default function Home() {
               <p className="text-lg text-gray-700 mb-8">
                 CIDROY's smart monitoring system uses AI to detect littering, create public awareness, and build civic accountability across Panjim, Goa.
               </p>
+              <Link href='/dashboard'><button className='w-full items-center justify-center p-3 rounded-2xl bg-green-600'>Dashboard</button></Link>
               <div className="flex flex-col sm:flex-row gap-4">
-              <div>
-                <button className='p-5 bg-green-300 rounded-4xl px-8'>Sign In</button>
-                {/* <SignIn
-                    fullPage={true}
-                    automaticRedirect={true}
-                    firstTab='password'
-                    extraInfo={<>When signing in, you agree to our <a href="/terms">Terms</a></>}
-                /> */}
-                </div>
-                <button className="bg-white hover:bg-gray-50 text-green-600 border border-green-600 py-3 px-8 rounded-lg font-medium transition duration-300">
-                  Watch Demo
-                </button>
-              </div>
+            </div>
             </div>
             <div className="hero-image relative h-80 lg:h-96 rounded-xl overflow-hidden shadow-2xl">
               <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-green-400/20"></div>
@@ -243,9 +235,7 @@ export default function Home() {
               Sign up today to access the dashboard and be part of building a cleaner, more beautiful Panjim.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-                <button className="bg-white text-green-600 py-3 px-8 rounded-lg font-medium transition duration-300">
-                    Sign Up
-                </button>
+
                 <button className="bg-gray-800 text-white py-3 px-8 rounded-lg font-medium transition duration-300">
                     Contact Us
                 </button>
