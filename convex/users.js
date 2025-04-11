@@ -48,16 +48,14 @@ export const GetUser = query({
   },
 });
 
-export const saveVideoEvidence = mutation({
+export const uploadClip = mutation({
   args: {
-    video: v.string(), // base64 .webm
-    timestamp: v.number(),
+    url: v.string(),
   },
-  handler: async (ctx, { video, timestamp }) => {
-    await ctx.db.insert("litterVideos", {
-      video,
-      timestamp,
+  handler: async (ctx, args) => {
+    await ctx.db.insert("clips", {
+      url: args.url,
+      createdAt: Date.now(),
     });
   },
 });
-

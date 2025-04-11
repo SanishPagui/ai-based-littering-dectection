@@ -8,9 +8,9 @@ export default defineSchema({
     password: v.string(),
     subscriptionId: v.optional(v.string()),
   }),
-  litterVideos: defineTable({
-    video: v.string(),
-    timestamp: v.number(),
+  clips: defineTable({
+    url: v.string(),
+    createdAt: v.number(),
   }),
   
 });
