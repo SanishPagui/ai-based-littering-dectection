@@ -1,4 +1,3 @@
-'// pages/dashboard.js
 'use client'
 import { useState, useEffect, SetStateAction } from 'react';
 import Head from 'next/head';
@@ -1098,6 +1097,3 @@ export default function Dashboard() {
   </div>
 );
 }
-
-
-                            '
