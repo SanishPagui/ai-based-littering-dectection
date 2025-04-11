@@ -10,7 +10,7 @@ gsap.registerPlugin(ScrollTrigger);
 const HallOfShame = () => {
   const user = useUser()
   const list = [
-    { name: user?.displayName, video: "litter_clips/litter_clip_20250411_071701.avi" },
+    { name: user?.displayName, video: "./litter_clip_20250411_061543.mp4" },
   ];
 
   const sectionRef = useRef(null);
@@ -18,18 +18,6 @@ const HallOfShame = () => {
   useEffect(() => {
     const cards = sectionRef.current.querySelectorAll(".user");
 
-    gsap.from(cards, {
-      opacity: 0,
-      y: 50,
-      duration: 1,
-      stagger: 0.2,
-      ease: "back.out(1.7)",
-      scrollTrigger: {
-        trigger: sectionRef.current,
-        start: "top 80%",
-        toggleActions: "play none none none",
-      },
-    });
   }, []);
 
   return (
